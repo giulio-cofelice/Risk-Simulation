@@ -70,3 +70,28 @@ def compute_portfolio_returns(asset_returns, weights=DEFAULT_WEIGHTS):
     portfolio_returns = asset_returns @ weights
     portfolio_returns.name = "portfolio"
     return portfolio_returns
+
+
+def train_test_split_returns(returns, train_fraction=0.7):
+    """
+    Split a return series in TIME order into a training window and a
+    hold-out test window -- no shuffling, ever. This is the boundary that
+    keeps the whole project honest: VaR/ES get estimated only on the train
+    slice, and M4's backtests check those frozen estimates against test-slice
+    days the model never saw. Shuffling here would leak future information
+    into estimation (lookahead bias) and silently invalidate every backtest
+    built on top of it.
+
+    Deliberately a single static split, not a rolling/walk-forward one: the
+    backtest is asking "if this model were frozen at one point in time, how
+    long does it stay valid," which is also the honest boundary given this
+    project doesn't use time-varying volatility methods (EWMA/GARCH) to
+    justify re-estimating partway through.
+    """
+    if not 0 < train_fraction < 1:
+        raise ValueError("train_fraction must be between 0 and 1.")
+
+    split_idx = int(len(returns) * train_fraction)
+    train_returns = returns.iloc[:split_idx]
+    test_returns = returns.iloc[split_idx:]
+    return train_returns, test_returns
