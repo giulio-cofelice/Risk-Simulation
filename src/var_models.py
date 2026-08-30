@@ -119,3 +119,16 @@ class MonteCarloVaR(VaRModel):
             raise RuntimeError("Call fit() before calculate().")
         quantile = np.quantile(self._simulated_returns, alpha)
         return -quantile
+
+    @property
+    def simulated_returns(self):
+        """
+        Read-only access to the simulated draws from fit(). Exists so
+        plots.py can visualize the simulated outcome distribution without
+        recomputing it or reaching into a private attribute -- plots.py's
+        whole design principle is drawing numbers it's handed, never
+        calculating its own.
+        """
+        if self._simulated_returns is None:
+            raise RuntimeError("Call fit() before accessing simulated_returns.")
+        return self._simulated_returns
