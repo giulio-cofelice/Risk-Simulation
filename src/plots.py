@@ -28,6 +28,55 @@ def plot_cumulative_growth(asset_returns, portfolio_returns, save_path=None):
     return fig
 
 
+def plot_var_backtest(test_returns, var_threshold, violations, method_name, confidence_label, save_path=None):
+    """
+    The visual form of M4's backtest: actual portfolio returns over the
+    TEST window, with the (fixed, train-estimated) VaR threshold drawn as a
+    horizontal line, and every violation -- a day the real loss broke that
+    promise -- marked as a red dot.
+
+    Takes test_returns, var_threshold, and violations all already computed
+    (by data.train_test_split_returns, a fitted VaR model, and
+    backtests.count_violations respectively) -- this function only draws
+    them, per plots.py's standing rule.
+
+    What to look for: whether the red dots are scattered randomly across
+    the window (independence, what Christoffersen's test checks) or bunched
+    into one stretch (a model that fails exactly when it matters), and
+    whether there are roughly the right NUMBER of them for the promised
+    confidence level (what Kupiec's test checks) -- both visible in one
+    picture instead of two separate numbers.
+    """
+    violations = violations.astype(bool)
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(test_returns.index, test_returns.values, linewidth=0.7, color="#4C72B0", label="Daily portfolio return")
+    ax.axhline(
+        -var_threshold,
+        color="crimson",
+        linestyle="--",
+        linewidth=1.2,
+        label=f"{method_name} VaR ({confidence_label}) = {var_threshold:.2%}",
+    )
+    ax.scatter(
+        test_returns.index[violations],
+        test_returns.values[violations],
+        color="crimson",
+        zorder=5,
+        s=30,
+        label=f"Violations ({int(violations.sum())})",
+    )
+    ax.set_title(f"{method_name} VaR Backtest ({confidence_label}) -- Test Period")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Daily portfolio return")
+    ax.legend(loc="lower left")
+    fig.tight_layout()
+
+    if save_path:
+        fig.savefig(save_path, dpi=150)
+    return fig
+
+
 def plot_monte_carlo_outcomes(simulated_returns, var_99, save_path=None):
     """
     Histogram of MonteCarloVaR's simulated draws -- literally the "possible
